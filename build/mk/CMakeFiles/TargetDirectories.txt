@@ -1,0 +1,17 @@
+/Users/tahur/Desktop/stampDB/build/mk/CMakeFiles/stampdb.dir
+/Users/tahur/Desktop/stampDB/build/mk/CMakeFiles/stampctl.dir
+/Users/tahur/Desktop/stampDB/build/mk/CMakeFiles/stampdb_shared.dir
+/Users/tahur/Desktop/stampDB/build/mk/CMakeFiles/test.dir
+/Users/tahur/Desktop/stampDB/build/mk/CMakeFiles/edit_cache.dir
+/Users/tahur/Desktop/stampDB/build/mk/CMakeFiles/rebuild_cache.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_basic.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_codec.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_recovery.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_powercut.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_crc_isolation.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_exporter.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_recovery_time.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test_gc_latency.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/test.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/edit_cache.dir
+/Users/tahur/Desktop/stampDB/build/mk/tests/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,108 @@
+Start testing: Sep 07 15:12 IST
+----------------------------------------------------------
+1/6 Testing: basic
+1/6 Test: basic
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_basic"
+Directory: /Users/tahur/Desktop/stampDB
+"basic" start time: Sep 07 15:12 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   1.26 sec
+----------------------------------------------------------
+Test Passed.
+"basic" end time: Sep 07 15:12 IST
+"basic" time elapsed: 00:00:01
+----------------------------------------------------------
+
+2/6 Testing: codec
+2/6 Test: codec
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_codec"
+Directory: /Users/tahur/Desktop/stampDB
+"codec" start time: Sep 07 15:12 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.35 sec
+----------------------------------------------------------
+Test Passed.
+"codec" end time: Sep 07 15:12 IST
+"codec" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: recovery
+3/6 Test: recovery
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_recovery"
+Directory: /Users/tahur/Desktop/stampDB
+"recovery" start time: Sep 07 15:12 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   1.42 sec
+----------------------------------------------------------
+Test Passed.
+"recovery" end time: Sep 07 15:12 IST
+"recovery" time elapsed: 00:00:01
+----------------------------------------------------------
+
+4/6 Testing: powercut_matrix
+4/6 Test: powercut_matrix
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_powercut"
+Directory: /Users/tahur/Desktop/stampDB
+"powercut_matrix" start time: Sep 07 15:12 IST
+Output:
+----------------------------------------------------------
+phase1 populate
+phase1 check
+read rows=300
+phase2 populate
+phase2 corrupt_header
+phase2 check
+read rows=300
+phase3 populate
+phase3 corrupt_payload
+phase3 check
+read rows=300
+phase4 populate
+phase4 corrupt_footer
+phase4 check
+read rows=300
+<end of output>
+Test time =   4.32 sec
+----------------------------------------------------------
+Test Passed.
+"powercut_matrix" end time: Sep 07 15:12 IST
+"powercut_matrix" time elapsed: 00:00:04
+----------------------------------------------------------
+
+5/6 Testing: crc_isolation
+5/6 Test: crc_isolation
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_crc_isolation"
+Directory: /Users/tahur/Desktop/stampDB
+"crc_isolation" start time: Sep 07 15:12 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   1.14 sec
+----------------------------------------------------------
+Test Passed.
+"crc_isolation" end time: Sep 07 15:12 IST
+"crc_isolation" time elapsed: 00:00:01
+----------------------------------------------------------
+
+6/6 Testing: exporter
+6/6 Test: exporter
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_exporter"
+Directory: /Users/tahur/Desktop/stampDB
+"exporter" start time: Sep 07 15:12 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   1.82 sec
+----------------------------------------------------------
+Test Passed.
+"exporter" end time: Sep 07 15:12 IST
+"exporter" time elapsed: 00:00:01
+----------------------------------------------------------
+
+End testing: Sep 07 15:12 IST

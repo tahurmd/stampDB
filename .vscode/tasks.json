@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label":"Configure Host Debug","type":"shell","command":"cmake --preset host-debug"},
+    {"label":"Build Host Debug","type":"shell","command":"cmake --build --preset host-debug"},
+    {"label":"Test Host Debug","type":"shell","command":"ctest --preset host-debug --output-on-failure"},
+    {"label":"Configure Pico2W","type":"shell","command":"cmake --preset pico2w-release"},
+    {"label":"Build Pico2W","type":"shell","command":"cmake --build --preset pico2w-release"}
+  ]
+}
+

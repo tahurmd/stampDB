@@ -1,0 +1,2 @@
+/usr/bin/ar qc libstampdb.a CMakeFiles/stampdb.dir/src/stampdb.c.o CMakeFiles/stampdb.dir/src/codec.c.o CMakeFiles/stampdb.dir/src/crc32c.c.o CMakeFiles/stampdb.dir/src/ring.c.o CMakeFiles/stampdb.dir/src/recovery.c.o CMakeFiles/stampdb.dir/src/read_iter.c.o CMakeFiles/stampdb.dir/src/meta_lfs.c.o CMakeFiles/stampdb.dir/sim/flash.c.o CMakeFiles/stampdb.dir/sim/platform_sim.c.o
+/usr/bin/ranlib libstampdb.a

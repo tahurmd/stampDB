@@ -1,0 +1,7 @@
+basic 9 0.140164
+codec 8 0.0435769
+recovery 6 0.237486
+powercut_matrix 5 0.864216
+crc_isolation 2 0.569836
+exporter 2 0.908844
+---

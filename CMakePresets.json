@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "host-debug",
+      "displayName": "Host Debug (SIM)",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build/host-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "STAMPDB_PLATFORM_SIM": "ON"
+      }
+    },
+    {
+      "name": "host-release",
+      "displayName": "Host Release (SIM)",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build/host-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "STAMPDB_PLATFORM_SIM": "ON"
+      }
+    },
+    {
+      "name": "pico2w-release",
+      "displayName": "Pico 2 W Release",
+      "generator": "Ninja",
+      "binaryDir": "build/pico2w-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "STAMPDB_PLATFORM_SIM": "OFF",
+        "PICO_BOARD": "pico2_w"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug"
+    },
+    {
+      "name": "host-release",
+      "configurePreset": "host-release"
+    },
+    {
+      "name": "pico2w-release",
+      "configurePreset": "pico2w-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

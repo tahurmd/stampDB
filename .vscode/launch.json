@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "stampctl export",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/host-debug/stampctl",
+      "args": ["export","--series","1","--t0","0","--t1","10000","--csv"],
+      "cwd": "${workspaceFolder}",
+      "MIMode": "lldb"
+    }
+  ]
+}
+

@@ -1,0 +1,47 @@
+Start testing: Sep 07 14:35 IST
+----------------------------------------------------------
+1/6 Testing: basic
+1/6 Test: basic
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_basic"
+Directory: /Users/tahur/Desktop/stampDB
+"basic" start time: Sep 07 14:35 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Passed.
+"basic" end time: Sep 07 14:35 IST
+"basic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/6 Testing: codec
+2/6 Test: codec
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_codec"
+Directory: /Users/tahur/Desktop/stampDB
+"codec" start time: Sep 07 14:35 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"codec" end time: Sep 07 14:35 IST
+"codec" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: recovery
+3/6 Test: recovery
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_recovery"
+Directory: /Users/tahur/Desktop/stampDB
+"recovery" start time: Sep 07 14:35 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"recovery" end time: Sep 07 14:35 IST
+"recovery" time elapsed: 00:00:00
+----------------------------------------------------------
+

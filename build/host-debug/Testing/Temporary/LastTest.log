@@ -1,0 +1,138 @@
+Start testing: Sep 07 20:27 IST
+----------------------------------------------------------
+1/8 Testing: basic
+1/8 Test: basic
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_basic"
+Directory: /Users/tahur/Desktop/stampDB
+"basic" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"basic" end time: Sep 07 20:27 IST
+"basic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/8 Testing: codec
+2/8 Test: codec
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_codec"
+Directory: /Users/tahur/Desktop/stampDB
+"codec" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"codec" end time: Sep 07 20:27 IST
+"codec" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/8 Testing: recovery
+3/8 Test: recovery
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_recovery"
+Directory: /Users/tahur/Desktop/stampDB
+"recovery" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.71 sec
+----------------------------------------------------------
+Test Passed.
+"recovery" end time: Sep 07 20:27 IST
+"recovery" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/8 Testing: powercut_matrix
+4/8 Test: powercut_matrix
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_powercut"
+Directory: /Users/tahur/Desktop/stampDB
+"powercut_matrix" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+phase1 populate
+phase1 check
+read rows=300
+phase2 populate
+phase2 corrupt_header
+phase2 check
+read rows=300
+phase3 populate
+phase3 corrupt_payload
+phase3 check
+read rows=300
+phase4 populate
+phase4 corrupt_footer
+phase4 check
+read rows=300
+<end of output>
+Test time =   2.70 sec
+----------------------------------------------------------
+Test Passed.
+"powercut_matrix" end time: Sep 07 20:27 IST
+"powercut_matrix" time elapsed: 00:00:02
+----------------------------------------------------------
+
+5/8 Testing: crc_isolation
+5/8 Test: crc_isolation
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_crc_isolation"
+Directory: /Users/tahur/Desktop/stampDB
+"crc_isolation" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.75 sec
+----------------------------------------------------------
+Test Passed.
+"crc_isolation" end time: Sep 07 20:27 IST
+"crc_isolation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/8 Testing: exporter
+6/8 Test: exporter
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_exporter"
+Directory: /Users/tahur/Desktop/stampDB
+"exporter" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.80 sec
+----------------------------------------------------------
+Test Passed.
+"exporter" end time: Sep 07 20:27 IST
+"exporter" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/8 Testing: recovery_time
+7/8 Test: recovery_time
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_recovery_time"
+Directory: /Users/tahur/Desktop/stampDB
+"recovery_time" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   3.08 sec
+----------------------------------------------------------
+Test Passed.
+"recovery_time" end time: Sep 07 20:27 IST
+"recovery_time" time elapsed: 00:00:03
+----------------------------------------------------------
+
+8/8 Testing: gc_latency
+8/8 Test: gc_latency
+Command: "/Users/tahur/Desktop/stampDB/build/host-debug/tests/test_gc_latency"
+Directory: /Users/tahur/Desktop/stampDB
+"gc_latency" start time: Sep 07 20:27 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"gc_latency" end time: Sep 07 20:27 IST
+"gc_latency" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 07 20:27 IST

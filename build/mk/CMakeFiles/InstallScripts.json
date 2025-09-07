@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/tahur/Desktop/stampDB/build/mk/cmake_install.cmake",
+		"/Users/tahur/Desktop/stampDB/build/mk/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
