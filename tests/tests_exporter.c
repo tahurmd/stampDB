@@ -22,7 +22,7 @@ int main(void){
   for (int i=0;i<1000;i++){ stampdb_write(db, 5, (uint32_t)(i*10), (float)(i%100)); }
   stampdb_flush(db); stampdb_close(db); free(ws);
   // run exporter
-  int rc = system("./build/mk/stampctl export --series 5 --t0 0 --t1 5000 --csv > out.csv");
+  int rc = system("./stampctl export --series 5 --t0 0 --t1 5000 --csv > out.csv");
   (void)rc;
   FILE *f=fopen("out.csv","rb"); if(!f){ fprintf(stderr,"no export\n"); return 2; }
   char line[256]; int lines=0; while (fgets(line,sizeof(line),f)) lines++; fclose(f);

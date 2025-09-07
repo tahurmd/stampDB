@@ -14,25 +14,29 @@
 #include "stampdb_internal.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef STAMPDB_PLATFORM_SIM
-// Host: implement A/B snapshots and head hint via regular files
+// Host: implement A/B snapshots and head hint via regular files (env override)
 
-static const char *snap_a_path = "meta_snap_a.bin";
-static const char *snap_b_path = "meta_snap_b.bin";
-static const char *head_hint_path = "meta_head_hint.bin";
+static void make_path(char *out, size_t cap, const char *fname){
+  const char *dir = getenv("STAMPDB_META_DIR"); if (!dir || !*dir) dir = ".";
+  snprintf(out, cap, "%s/%s", dir, fname);
+}
 
 static int load_file(const char *p, void *buf, size_t len){
   FILE *f = fopen(p, "rb"); if (!f) return -1; size_t r=fread(buf,1,len,f); fclose(f); return r==len?0:-1; }
 static int save_file_atomic(const char *p, const void *buf, size_t len){
-  char tmp[256]; snprintf(tmp,sizeof(tmp),"%s.tmp",p);
+  char tmp[512]; snprintf(tmp,sizeof(tmp),"%s.tmp",p);
   FILE *f=fopen(tmp,"wb"); if(!f) return -1; size_t w=fwrite(buf,1,len,f); fclose(f); if(w!=len) return -1; if (rename(tmp,p)!=0) return -1; return 0; }
 
 /** @brief Load newest valid snapshot (A or B); returns 0 on success. */
 int meta_load_snapshot(stampdb_snapshot_t *out){
-  stampdb_snapshot_t a,b; int have_a=0,have_b=0;
-  if (load_file(snap_a_path, &a, sizeof(a))==0){ uint32_t crc=a.crc; a.crc=0; if (crc32c(&a,sizeof(a))==crc) have_a=1; }
-  if (load_file(snap_b_path, &b, sizeof(b))==0){ uint32_t crc=b.crc; b.crc=0; if (crc32c(&b,sizeof(b))==crc) have_b=1; }
+  stampdb_snapshot_t a,b; int have_a=0,have_b=0; char pa[512], pb[512];
+  make_path(pa,sizeof(pa),"meta_snap_a.bin");
+  make_path(pb,sizeof(pb),"meta_snap_b.bin");
+  if (load_file(pa, &a, sizeof(a))==0){ uint32_t crc=a.crc; a.crc=0; if (crc32c(&a,sizeof(a))==crc) have_a=1; }
+  if (load_file(pb, &b, sizeof(b))==0){ uint32_t crc=b.crc; b.crc=0; if (crc32c(&b,sizeof(b))==crc) have_b=1; }
   if (!have_a && !have_b) return -1;
   *out = (!have_b || (have_a && a.seg_seq_head >= b.seg_seq_head)) ? a : b;
   return 0;
@@ -42,22 +46,22 @@ int meta_load_snapshot(stampdb_snapshot_t *out){
 int meta_save_snapshot(const stampdb_snapshot_t *snap){
   // toggle based on seg_seq_head parity
   stampdb_snapshot_t s=*snap; s.crc=0; s.crc=crc32c(&s,sizeof(s));
-  const char *primary = (snap->seg_seq_head & 1)? snap_a_path : snap_b_path;
-  return save_file_atomic(primary, &s, sizeof(s));
+  char p[512]; make_path(p,sizeof(p), (snap->seg_seq_head & 1)? "meta_snap_a.bin" : "meta_snap_b.bin");
+  return save_file_atomic(p, &s, sizeof(s));
 }
 
 /** @brief Load ring head hint (address + seq) with CRC. */
 int meta_load_head_hint(uint32_t *addr_out, uint32_t *seq_out){
-  struct {uint32_t addr; uint32_t seq; uint32_t crc;} h;
-  if (load_file(head_hint_path, &h, sizeof(h))!=0) return -1;
+  struct {uint32_t addr; uint32_t seq; uint32_t crc;} h; char p[512]; make_path(p,sizeof(p),"meta_head_hint.bin");
+  if (load_file(p, &h, sizeof(h))!=0) return -1;
   uint32_t c=h.crc; h.crc=0; if (crc32c(&h,sizeof(h))!=c) return -1; *addr_out=h.addr; *seq_out=h.seq; return 0;
 }
 
 /** @brief Save ring head hint as a small record; rename-atomic. */
 int meta_save_head_hint(uint32_t addr, uint32_t seq){
-  struct {uint32_t addr; uint32_t seq; uint32_t crc;} h={addr,seq,0};
+  struct {uint32_t addr; uint32_t seq; uint32_t crc;} h={addr,seq,0}; char p[512]; make_path(p,sizeof(p),"meta_head_hint.bin");
   h.crc=crc32c(&h,sizeof(h));
-  return save_file_atomic(head_hint_path, &h, sizeof(h));
+  return save_file_atomic(p, &h, sizeof(h));
 }
 
 #else

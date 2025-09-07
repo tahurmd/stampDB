@@ -167,3 +167,30 @@ StampDB employs a multi-layered approach to ensure data is never lost or corrupt
 - **SSTable (Sorted String Table):** An immutable (never modified) file on flash that contains a block of data, sorted by its key (in our case, by timestamp).
 - **LSM-Tree (Log-Structured Merge-Tree):** The architectural concept of using a Memtable, SSTables, and a Compaction process to create a write-optimized database.
 - **Wear Leveling:** A technique used by flash-aware filesystems like LittleFS to distribute writes evenly across all physical blocks of the flash memory, preventing any single block from wearing out prematurely.
+
+---
+
+## Run on PC (host)
+
+Build & test:
+
+```
+cmake --preset host-debug
+cmake --build --preset host-debug -j
+(cd build/host-debug && ctest --output-on-failure)
+```
+
+Export a range (CSV):
+
+```
+./build/host-debug/stampctl export --series 1 --t0 0 --t1 5000 --csv | head
+```
+
+Environment overrides (host sim paths):
+
+```
+export STAMPDB_FLASH_PATH=/abs/path/flash.bin
+export STAMPDB_META_DIR=/abs/path
+```
+
+See `KNOWLEDGEBASE.md` for the full operational guide.

@@ -84,6 +84,14 @@ Payload format (as coded):
 Drift vs SPEC §5: SPEC’s “PayloadPreamble” (bias/scale/t0/flags/count) is NOT in payload.
 Those fields live in the 32 B header in this implementation.
 
+Struct size guarantees (compile‑time):
+- Header is locked at 32 bytes (compile‑time assert in code).
+- Footer occupies a full 256‑byte page (compile‑time assert on the image size).
+
+Endianness & CRC:
+- All multi‑byte integers and floats are little‑endian on flash.
+- CRC32C (Castagnoli): polynomial 0x1EDC6F41, init 0xFFFFFFFF, final XOR 0xFFFFFFFF (per `src/crc32c.c`).
+
 Block header (32 B, written last, commits the page):
 - Magic: `STAMPDB_BLOCK_MAGIC = 'BLK1' = 0x424C4B31`.
 - Header CRC: CRC32C over bytes 0..27; stored at bytes 28..31.
@@ -158,6 +166,7 @@ Read path
 2) For each candidate page: read payload and header, verify header magic+CRC and payload CRC.
 3) Decode payload into per‑block buffers; reconstruct times (t0 + deltas).
 4) Yield rows within [t0..t1]. Constant RAM per iterator (SoA per block).
+Hard cap: Iteration enforces a maximum pages visited per call of `seg_count * 15 + 1` to avoid unbounded scans.
 
 Recovery
 - On open:
@@ -168,6 +177,7 @@ Recovery
     stop at first invalid. If at least one valid page preceded the invalid, count a
     `recovery_truncations` event and position head at first invalid page.
 - Guarantee: at most the last partial block is lost.
+Hard cap: Tail probe enforces a maximum pages visited per call of `seg_count * 15 + 1` to avoid unbounded scans.
 
 GC & retention
 - Circular reclaim of oldest segments.
@@ -306,7 +316,13 @@ Export CSV
 ```
 
 Where sim files live
-- Repo root: `flash.bin`, `meta_snap_a.bin`, `meta_snap_b.bin`, `meta_head_hint.bin`.
+- Default: repo root (`flash.bin`, `meta_snap_a.bin`, `meta_snap_b.bin`, `meta_head_hint.bin`).
+
+Env‑var overrides (host sim):
+```
+export STAMPDB_FLASH_PATH=/abs/path/flash.bin
+export STAMPDB_META_DIR=/abs/path
+```
 
 Env overrides
 - Flash size: `STAMPDB_SIM_FLASH_BYTES=8388608` (8 MiB).
@@ -507,4 +523,3 @@ Tests inventory
 Unknowns (how to verify)
 - Pico flash size detection: currently hardcoded default; use board config (`PICO_FLASH_SIZE_BYTES`) to confirm true size.
 - Path override for sim files: not implemented; inspect `sim/flash.c` for adding an env var (would wrap `flash_path`).
-

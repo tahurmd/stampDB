@@ -10,6 +10,7 @@
  *  - Bridges API calls to ring/codec/platform primitives
  */
 #include "stampdb_internal.h"
+#include "format.h"
 #include <string.h>
 #include <math.h>
 

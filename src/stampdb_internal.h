@@ -37,7 +37,10 @@ extern "C" {
 
 #define STAMPDB_SERIES_BITMAP_BYTES 32u // 256-bit
 #define STAMPDB_MAX_SERIES 256u
-#define STAMPDB_META_RESERVED (32768u) // 8x4KiB sectors reserved at top of flash for snapshots + head hint (LittleFS)
+#ifndef STAMPDB_META_RESERVED
+#define STAMPDB_META_RESERVED (32768u) // reserved at top of flash for snapshots + head hint (LittleFS)
+#endif
+#define STAMPDB_LAYOUT_VERSION 1
 
 static inline bool ts_le(uint32_t a, uint32_t b){ return (uint32_t)(b - a) < 0x80000000u; }
 static inline bool ts_ge(uint32_t a, uint32_t b){ return ts_le(b,a); }

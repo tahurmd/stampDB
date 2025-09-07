@@ -174,7 +174,10 @@ int ring_scan_and_recover(stampdb_state_t *s, const stampdb_snapshot_t *snap_opt
   uint32_t cur_seg_base = align_down(s->head.addr, STAMPDB_SEG_BYTES);
   uint32_t first_free_page = 0;
   bool had_valid=false; bool broke=false;
+  uint64_t visited_pages = 0;
+  const uint64_t max_pages = (uint64_t)s->seg_count * (uint64_t)STAMPDB_DATA_PAGES_PER_SEG;
   for (uint32_t p=0;p<STAMPDB_DATA_PAGES_PER_SEG;p++){
+    if (++visited_pages > (max_pages + 1)) { broke=true; break; }
     block_header_t h; uint8_t payload[STAMPDB_PAYLOAD_BYTES];
     int r = read_block(cur_seg_base + p*STAMPDB_PAGE_BYTES, &h, payload);
     if (r!=0){ first_free_page = p; broke=true; break; }

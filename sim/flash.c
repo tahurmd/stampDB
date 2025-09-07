@@ -15,7 +15,10 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static const char *flash_path = "flash.bin";
+static const char *get_flash_path(void){
+  const char *p = getenv("STAMPDB_FLASH_PATH");
+  return (p && *p) ? p : "flash.bin";
+}
 static uint8_t *flash_mem = NULL;
 static uint32_t flash_bytes = 4*1024*1024; // default 4 MiB
 
@@ -25,19 +28,19 @@ static void ensure_loaded(void){
   const char *env = getenv("STAMPDB_SIM_FLASH_BYTES");
   if (env) { unsigned long v = strtoul(env, NULL, 10); if (v>=4096) flash_bytes = (uint32_t)v; }
   flash_mem = (uint8_t*)malloc(flash_bytes);
-  FILE *f = fopen(flash_path, "rb");
+  FILE *f = fopen(get_flash_path(), "rb");
   if (f){ fread(flash_mem,1,flash_bytes,f); fclose(f); }
   else { memset(flash_mem,0xFF,flash_bytes); }
 }
 
 /** @brief Persist entire image to disk. */
-static void persist(void){ FILE *f=fopen(flash_path,"wb"); if(!f) return; fwrite(flash_mem,1,flash_bytes,f); fclose(f);} 
+static void persist(void){ FILE *f=fopen(get_flash_path(),"wb"); if(!f) return; fwrite(flash_mem,1,flash_bytes,f); fclose(f);} 
 
 /** @brief Read from flash (refreshes in-memory view from disk). */
 int sim_flash_read(uint32_t addr, void *dst, size_t len){
   ensure_loaded();
   // Refresh from disk to honor external modifications by tests
-  FILE *f = fopen(flash_path, "rb");
+  FILE *f = fopen(get_flash_path(), "rb");
   if (f){ fread(flash_mem,1,flash_bytes,f); fclose(f); }
   else { memset(flash_mem,0xFF,flash_bytes); }
   if (addr+len>flash_bytes) return -1; memcpy(dst, flash_mem+addr, len); return 0;

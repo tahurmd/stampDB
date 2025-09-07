@@ -32,6 +32,8 @@ stampdb_rc stampdb_query_begin(stampdb_t *db, uint16_t series, uint32_t t0_ms, u
  */
 static bool load_next_block(stampdb_it_t *it){
   stampdb_state_t *s = it->s;
+  uint64_t visited_pages = 0;
+  const uint64_t max_pages = (uint64_t)s->seg_count * (uint64_t)STAMPDB_DATA_PAGES_PER_SEG;
   while (it->seg_idx < s->seg_count){
     seg_summary_t *sm = &s->segs[it->seg_idx];
     // --- Zone-map skip (wrap-aware) ----------------------------------------
@@ -44,6 +46,7 @@ static bool load_next_block(stampdb_it_t *it){
     }
     // scan pages within seg
     while (it->page_in_seg < STAMPDB_DATA_PAGES_PER_SEG){
+      if (++visited_pages > (max_pages + 1)) { return false; }
       uint32_t addr = sm->addr_first + it->page_in_seg*STAMPDB_PAGE_BYTES;
       block_header_t h; uint8_t payload[STAMPDB_PAYLOAD_BYTES];
       if (platform_flash_read(addr, payload, STAMPDB_PAYLOAD_BYTES)!=0) { it->seg_idx++; it->page_in_seg=0; break; }
@@ -122,6 +125,10 @@ stampdb_rc stampdb_query_latest(stampdb_t *db, uint16_t series, uint32_t *out_ts
   q = (int16_t)(qptr[(best_h.count-1)*2] | (qptr[(best_h.count-1)*2+1]<<8));
   float v = best_h.bias + best_h.scale * (float)q;
   if (out_ts_ms) *out_ts_ms = t;
+/**
+ * Hard cap for page scans per iterator call to avoid unbounded loops under
+ * unexpected corruption: seg_count * data_pages_per_segment + 1.
+ */
   if (out_value) *out_value = v;
   return STAMPDB_OK;
 }

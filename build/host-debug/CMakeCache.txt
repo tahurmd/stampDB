@@ -213,6 +213,9 @@ CMAKE_TAPI:FILEPATH=/Library/Developer/CommandLineTools/usr/bin/tapi
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
+//Bytes reserved for LittleFS metadata region at top of flash
+STAMPDB_META_RESERVED_BYTES:BOOL=OFF
+
 //Build for host simulator platform
 STAMPDB_PLATFORM_SIM:BOOL=ON
 

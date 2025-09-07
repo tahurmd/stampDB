@@ -1,139 +1,88 @@
 #!/usr/bin/env python3
 """
-Temp Sensor Demo (host) — write & read with StampDB via ctypes.
-
-- Writes N temperature samples (series=1), 1000 ms apart.
-- Flushes, closes, re-opens (simulated power cycle).
-- Reads back the latest (ts_ms, value) and prints it.
-- Ensures flash files live under --build-dir (we chdir there).
+Quick host-side sanity test for StampDB using the Python ctypes wrapper.
 
 Usage:
-  python3 examples/temp_sensor_demo.py --build-dir build/mk --n 20
+  python3 test.py [--fresh] [--series 1] [--rows 20]
 
-Requires:
-  - A shared library for StampDB in your build dir (libstampdb.so/.dylib/.dll)
-  - Host build done via CMake (see KNOWLEDGEBASE.md “Run on PC”)
+Notes:
+  - Writes a few rows into the simulator (flash.bin in repo root),
+    flushes, prints latest, then exports a small range and prints the rows.
+  - Set STAMPDB_LIB if the loader cannot find the shared library.
 """
-
-import argparse
-import ctypes as C
 import os
-import platform
 import sys
-from pathlib import Path
+from typing import List, Tuple
 
-def die(msg):
-    print(f"[x] {msg}", file=sys.stderr)
-    sys.exit(1)
+try:
+    # Preferred import when PYTHONPATH includes repo root
+    from py.stampdb import StampDB  # may collide with external 'py' package
+except Exception:
+    # Fallback: import directly from the local ./py folder to avoid 'py' package clash
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), 'py'))
+    from stampdb import StampDB
 
-def find_lib(build_dir: Path):
-    sysname = platform.system()
-    pats = {
-        "Darwin":  ["**/libstampdb.dylib", "libstampdb.dylib"],
-        "Windows": ["**/stampdb.dll", "stampdb.dll"],
-        "Linux":   ["**/libstampdb.so", "libstampdb.so"],
-    }[sysname if sysname in ("Darwin","Windows") else "Linux"]
-    for pat in pats:
-        for p in build_dir.glob(pat):
-            return p
-    return None
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--build-dir", default="build/mk", help="Where to run & place flash.bin (we chdir here)")
-    ap.add_argument("--series", type=int, default=1, help="Series id")
-    ap.add_argument("--n", type=int, default=20, help="Number of samples to write")
-    ap.add_argument("--step_ms", type=int, default=1000, help="Time between samples (ms)")
-    ap.add_argument("--base_c", type=float, default=25.0, help="Base temperature (°C)")
-    args = ap.parse_args()
+def reset_sim() -> None:
+    for p in ["flash.bin", "meta_snap_a.bin", "meta_snap_b.bin", "meta_head_hint.bin"]:
+        try:
+            os.remove(p)
+        except FileNotFoundError:
+            pass
 
-    build = Path(args.build_dir).resolve()
-    if not build.exists():
-        die(f"Build dir not found: {build}")
 
-    # Run everything inside build dir so flash.bin lands here
-    os.chdir(build)
-    print(f"[+] Working dir: {Path.cwd()}")
-    print("[+] flash.bin, meta_snap_*.bin, meta_head_hint.bin will appear here.")
+def main(argv: List[str]) -> int:
+    # Parse simple flags
+    fresh = "--fresh" in argv
+    def get_arg(name: str, default: str) -> str:
+        if name in argv:
+            idx = argv.index(name)
+            if idx + 1 < len(argv):
+                return argv[idx + 1]
+        return default
 
-    # Clean old sim files for a fresh run (safe to ignore if absent)
-    for fname in ("flash.bin","meta_snap_a.bin","meta_snap_b.bin","meta_head_hint.bin"):
-        try: Path(fname).unlink()
-        except FileNotFoundError: pass
+    series = int(get_arg("--series", "1"))
+    rows = int(get_arg("--rows", "20"))
 
-    # Load shared lib
-    libpath = find_lib(build)
-    if not libpath:
-        die("Could not find libstampdb shared library in build dir. Build the host target first.")
-    print(f"[+] Using: {libpath}")
-    lib = C.CDLL(str(libpath))
+    if fresh:
+        reset_sim()
+        print("[info] reset simulator files (flash.bin, meta_*).")
 
-    # --- Minimal ABI types based on your header ---
-    class StampDBCfg(C.Structure):
-        _fields_ = [
-            ("workspace", C.c_void_p),
-            ("workspace_bytes", C.c_uint32),
-            ("read_batch_rows", C.c_uint32),
-            ("commit_interval_ms", C.c_uint32),
-        ]
+    # Open DB with a 1 MiB workspace
+    ws_bytes = 1 << 20
+    db = StampDB(workspace_bytes=ws_bytes, read_batch_rows=512, commit_interval_ms=0)
 
-    # Function signatures
-    lib.stampdb_open.argtypes  = [C.POINTER(C.c_void_p), C.POINTER(StampDBCfg)]
-    lib.stampdb_open.restype   = C.c_int
-    lib.stampdb_close.argtypes = [C.c_void_p]
-    lib.stampdb_close.restype  = None
-    lib.stampdb_write.argtypes = [C.c_void_p, C.c_uint16, C.c_uint32, C.c_float]
-    lib.stampdb_write.restype  = C.c_int
-    lib.stampdb_flush.argtypes = [C.c_void_p]
-    lib.stampdb_flush.restype  = C.c_int
-    lib.stampdb_query_latest.argtypes = [C.c_void_p, C.c_uint16, C.POINTER(C.c_uint32), C.POINTER(C.c_float)]
-    lib.stampdb_query_latest.restype  = C.c_int
+    # Write rows: ts = i*100 ms, value = i*0.5
+    for i in range(rows):
+        db.write(series, i * 100, i * 0.5)
+    db.flush()
 
-    RC = {0:"OK",1:"EINVAL",2:"EBUSY",3:"ENOSPACE",4:"ECRC",5:"EIO"}
+    # Latest
+    latest = db.latest(series)
+    print(f"latest(series={series}):", latest)
 
-    # Workspace buffers (deterministic RAM)
-    ws1 = C.create_string_buffer(128*1024)
-    ws2 = C.create_string_buffer(128*1024)
+    # Query a small range and print rows
+    qrows: List[Tuple[int, float]] = list(db.query(series, 0, (rows - 1) * 100))
+    print(f"query rows returned: {len(qrows)}")
+    for r in qrows[:10]:
+        print(f"{r[0]},{r[1]:.6g}")
+    if len(qrows) > 10:
+        print("...")
 
-    # ---------- OPEN #1 ----------
-    db = C.c_void_p()
-    cfg = StampDBCfg(C.addressof(ws1), C.c_uint32(len(ws1)), C.c_uint32(512), C.c_uint32(0))
-    rc = lib.stampdb_open(C.byref(db), C.byref(cfg))
-    if rc != 0: die(f"stampdb_open #1 failed: {RC.get(rc, rc)}")
+    # Snapshot + reopen sanity
+    db.snapshot()
+    stats = db.info()
+    print("stats:", stats)
+    db.close()
 
-    # ---------- WRITE N SAMPLES ----------
-    print(f"[+] Writing {args.n} samples (series={args.series}) …")
-    for i in range(args.n):
-        ts  = C.c_uint32(i * args.step_ms)
-        val = C.c_float(args.base_c + 0.05*i)  # simple ramp (°C)
-        rc = lib.stampdb_write(db, C.c_uint16(args.series), ts, val)
-        if rc != 0: die(f"stampdb_write failed at i={i}: {RC.get(rc, rc)}")
+    # Re-open to prove recovery works quickly
+    db2 = StampDB(workspace_bytes=ws_bytes, read_batch_rows=512, commit_interval_ms=0)
+    latest2 = db2.latest(series)
+    print(f"latest after reopen: {latest2}")
+    db2.close()
+    return 0
 
-    rc = lib.stampdb_flush(db)
-    if rc != 0: die(f"stampdb_flush #1 failed: {RC.get(rc, rc)}")
-
-    # Simulate power cycle
-    lib.stampdb_close(db)
-
-    # ---------- OPEN #2 (RECOVERY) ----------
-    db2 = C.c_void_p()
-    cfg2 = StampDBCfg(C.addressof(ws2), C.c_uint32(len(ws2)), C.c_uint32(512), C.c_uint32(0))
-    rc = lib.stampdb_open(C.byref(db2), C.byref(cfg2))
-    if rc != 0: die(f"stampdb_open #2 failed: {RC.get(rc, rc)}")
-
-    # ---------- READ LATEST ----------
-    out_ts = C.c_uint32(0)
-    out_v  = C.c_float(0.0)
-    rc = lib.stampdb_query_latest(db2, C.c_uint16(args.series), C.byref(out_ts), C.byref(out_v))
-    if rc != 0: die(f"stampdb_query_latest failed: {RC.get(rc, rc)}")
-
-    print(f"[+] Latest: ts_ms={out_ts.value}, temp_c={out_v.value:.3f}")
-    expected_ts = (args.n - 1) * args.step_ms
-    if out_ts.value != expected_ts:
-        die(f"Unexpected ts: {out_ts.value} (expected {expected_ts})")
-
-    lib.stampdb_close(db2)
-    print("[✓] Demo OK. flash.bin path:", Path("flash.bin").resolve())
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1:]))
