@@ -21,8 +21,12 @@ extern uint32_t __flash_binary_end; // symbol typically provided by linker
 uint64_t platform_millis(void){ return to_ms_since_boot(get_absolute_time()); }
 
 static uint32_t flash_total_bytes(void){
-  // Assume 2MB default if not known; on pico this can be queried from SDK config
+#ifdef PICO_FLASH_SIZE_BYTES
+  return PICO_FLASH_SIZE_BYTES;
+#else
+  // Fallback: 2 MiB if board config not provided
   return 2*1024*1024;
+#endif
 }
 
 /** @brief XIP read from flash-mapped address space. */

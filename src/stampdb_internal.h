@@ -7,7 +7,7 @@
  *  - Platform glue (flash I/O, time) and metadata (snapshots/head)
  *
  * Role in system:
- *  - Shared header for src/* files and platform shims (host/pico)
+ *  - Shared header for the src tree and platform shims (host/pico)
  *
  * Constraints:
  *  - No external allocations; all pointers derive from `stampdb_cfg_t.workspace`
@@ -49,6 +49,10 @@ static inline bool ts_in_range(uint32_t t, uint32_t t0, uint32_t t1){
   // wrapped window
   return ts_le(t0, t) || ts_le(t, t1);
 }
+
+// Compile-time platform assumptions
+_Static_assert(sizeof(float) == 4, "float must be 4 bytes (binary32)");
+_Static_assert(sizeof(uint32_t) == 4, "uint32_t must be 4 bytes");
 
 /** @brief Compute CRC32C (Castagnoli) over a buffer. */
 uint32_t crc32c(const void *data, size_t len);

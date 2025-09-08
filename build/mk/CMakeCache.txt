@@ -216,6 +216,9 @@ CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 //No help, variable specified on the command line.
 STAMPDB_BUILD_HOST:UNINITIALIZED=ON
 
+//Bytes reserved for LittleFS metadata region at top of flash
+STAMPDB_META_RESERVED_BYTES:STRING=32768
+
 //Build for host simulator platform
 STAMPDB_PLATFORM_SIM:BOOL=ON
 

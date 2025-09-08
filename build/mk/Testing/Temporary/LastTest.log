@@ -1,55 +1,55 @@
-Start testing: Sep 07 15:12 IST
+Start testing: Sep 08 10:14 IST
 ----------------------------------------------------------
-1/6 Testing: basic
-1/6 Test: basic
+1/8 Testing: basic
+1/8 Test: basic
 Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_basic"
-Directory: /Users/tahur/Desktop/stampDB
-"basic" start time: Sep 07 15:12 IST
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"basic" start time: Sep 08 10:14 IST
 Output:
 ----------------------------------------------------------
 <end of output>
-Test time =   1.26 sec
+Test time =   0.85 sec
 ----------------------------------------------------------
 Test Passed.
-"basic" end time: Sep 07 15:12 IST
-"basic" time elapsed: 00:00:01
+"basic" end time: Sep 08 10:14 IST
+"basic" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-2/6 Testing: codec
-2/6 Test: codec
+2/8 Testing: codec
+2/8 Test: codec
 Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_codec"
-Directory: /Users/tahur/Desktop/stampDB
-"codec" start time: Sep 07 15:12 IST
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"codec" start time: Sep 08 10:14 IST
 Output:
 ----------------------------------------------------------
 <end of output>
-Test time =   0.35 sec
+Test time =   0.37 sec
 ----------------------------------------------------------
 Test Passed.
-"codec" end time: Sep 07 15:12 IST
+"codec" end time: Sep 08 10:14 IST
 "codec" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-3/6 Testing: recovery
-3/6 Test: recovery
+3/8 Testing: recovery
+3/8 Test: recovery
 Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_recovery"
-Directory: /Users/tahur/Desktop/stampDB
-"recovery" start time: Sep 07 15:12 IST
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"recovery" start time: Sep 08 10:14 IST
 Output:
 ----------------------------------------------------------
 <end of output>
-Test time =   1.42 sec
+Test time =   0.97 sec
 ----------------------------------------------------------
 Test Passed.
-"recovery" end time: Sep 07 15:12 IST
-"recovery" time elapsed: 00:00:01
+"recovery" end time: Sep 08 10:14 IST
+"recovery" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-4/6 Testing: powercut_matrix
-4/6 Test: powercut_matrix
+4/8 Testing: powercut_matrix
+4/8 Test: powercut_matrix
 Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_powercut"
-Directory: /Users/tahur/Desktop/stampDB
-"powercut_matrix" start time: Sep 07 15:12 IST
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"powercut_matrix" start time: Sep 08 10:14 IST
 Output:
 ----------------------------------------------------------
 phase1 populate
@@ -68,41 +68,71 @@ phase4 corrupt_footer
 phase4 check
 read rows=300
 <end of output>
-Test time =   4.32 sec
+Test time =   2.98 sec
 ----------------------------------------------------------
 Test Passed.
-"powercut_matrix" end time: Sep 07 15:12 IST
-"powercut_matrix" time elapsed: 00:00:04
+"powercut_matrix" end time: Sep 08 10:14 IST
+"powercut_matrix" time elapsed: 00:00:02
 ----------------------------------------------------------
 
-5/6 Testing: crc_isolation
-5/6 Test: crc_isolation
+5/8 Testing: crc_isolation
+5/8 Test: crc_isolation
 Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_crc_isolation"
-Directory: /Users/tahur/Desktop/stampDB
-"crc_isolation" start time: Sep 07 15:12 IST
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"crc_isolation" start time: Sep 08 10:14 IST
 Output:
 ----------------------------------------------------------
 <end of output>
-Test time =   1.14 sec
+Test time =   1.01 sec
 ----------------------------------------------------------
 Test Passed.
-"crc_isolation" end time: Sep 07 15:12 IST
+"crc_isolation" end time: Sep 08 10:14 IST
 "crc_isolation" time elapsed: 00:00:01
 ----------------------------------------------------------
 
-6/6 Testing: exporter
-6/6 Test: exporter
+6/8 Testing: exporter
+6/8 Test: exporter
 Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_exporter"
-Directory: /Users/tahur/Desktop/stampDB
-"exporter" start time: Sep 07 15:12 IST
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"exporter" start time: Sep 08 10:14 IST
 Output:
 ----------------------------------------------------------
 <end of output>
-Test time =   1.82 sec
+Test time =   1.52 sec
 ----------------------------------------------------------
 Test Passed.
-"exporter" end time: Sep 07 15:12 IST
+"exporter" end time: Sep 08 10:14 IST
 "exporter" time elapsed: 00:00:01
 ----------------------------------------------------------
 
-End testing: Sep 07 15:12 IST
+7/8 Testing: recovery_time
+7/8 Test: recovery_time
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_recovery_time"
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"recovery_time" start time: Sep 08 10:14 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   3.37 sec
+----------------------------------------------------------
+Test Passed.
+"recovery_time" end time: Sep 08 10:14 IST
+"recovery_time" time elapsed: 00:00:03
+----------------------------------------------------------
+
+8/8 Testing: gc_latency
+8/8 Test: gc_latency
+Command: "/Users/tahur/Desktop/stampDB/build/mk/tests/test_gc_latency"
+Directory: /Users/tahur/Desktop/stampDB/build/mk
+"gc_latency" start time: Sep 08 10:14 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.40 sec
+----------------------------------------------------------
+Test Passed.
+"gc_latency" end time: Sep 08 10:14 IST
+"gc_latency" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 08 10:14 IST

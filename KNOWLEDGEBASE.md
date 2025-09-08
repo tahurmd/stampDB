@@ -283,6 +283,14 @@ Dependencies
 Optional
 - Python 3 for ctypes and serial client (`pyserial`).
 
+Versioning & Changelog
+- Current KB version: 1.1 (CLI Enhancements)
+  - Added one‑word C CLI commands: `reset`, `hello`, `peek`, `dump` (in `stampctl`).
+  - Added Python helper CLI `tools/stampp.py` with the same one‑word commands.
+  - Added `stampctl info` (prints stats) and `stampctl ingest` (write N rows).
+  - Pico flash size auto‑detection via `PICO_FLASH_SIZE_BYTES` (firmware build).
+  - Guards: hard caps on page scans; env‑var control for sim file paths.
+
 ---
 
 ## ▶ Run on PC (with example data)
@@ -509,6 +517,9 @@ Constants (as coded)
 CLI reference
 - Export: `stampctl export --series S --t0 T0 --t1 T1 [--csv|--ndjson]`
 - Retention: `stampctl retention --days D`
+- Info: `stampctl info`
+- Ingest: `stampctl ingest --series S --rows N [--period-ms P] [--start T0]`
+- One‑word helpers: `stampctl reset | hello | peek | dump`
 
 Tests inventory
 - `tests_basic.c`: write/read sanity; latest monotonic.
