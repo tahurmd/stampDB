@@ -22,7 +22,7 @@
                                       |
                  +--------------------+-----------------------+
                  |                 Storage                   |
-                 |  Raw Circular Log (data)  +  LittleFS (meta)
+                 |  Raw Circular Log (data)  +  Raw Meta Region
                  +--------------------+-----------------------+
 ```
 
@@ -40,9 +40,8 @@ QSPI Flash (2–4 MiB total)
 │  [ Segment 0 ][ Segment 1 ] ... [ Segment N ]                 │
 └───────────────────────────────────────────────────────────────┘
 ┌───────────────────────────────────────────────────────────────┐
-│                        LittleFS (~meta)                       │
-│  /db/index_A.snap   /db/index_B.snap   /db/ring_head.bin      │
-│  /logs/diag.log     /health/wear.bin                          │
+│                        Raw Meta Region                         │
+│  Sector 0: Snapshot A   Sector 1: Snapshot B   Sector 2: Head │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -112,8 +111,8 @@ for each segment:
 ## 5) Recovery (bounded time)
 
 ```
-Boot → mount LittleFS → read A/B snapshots (pick newest valid)
-     → read ring_head.bin (fast‑forward hint)
+Boot → read raw A/B snapshot records (pick newest valid)
+     → read head‑hint record (fast‑forward hint)
      → probe the tail segment:
          scan forward 256‑B pages
          accept only valid headers + CRC‑clean payloads
@@ -150,7 +149,7 @@ Boot → mount LittleFS → read A/B snapshots (pick newest valid)
 
 - **Core0 (App):** sampling, UI, networking; pushes points to FIFO.
 - **Core1 (DB):** periodic timers drive builder flushes, snapshot cadence, and ring‑head updates.
-- **LittleFS ops:** short bursts; avoid long sequences during heavy ingest.
+- **Meta ops:** short bursts; only on snapshot save or segment roll (head‑hint persist).
 - **ISR‑safe:** `stampdb_write` SHOULD be callable from a soft‑IRQ context if the FIFO path is used (no dynamic allocation, no blocking in ISR).
 
 ---
@@ -184,7 +183,7 @@ Boot → mount LittleFS → read A/B snapshots (pick newest valid)
 
 - **Append‑only pages** → predictable latency, easy torn‑write handling.
 - **Zone maps** (t_min/t_max) → tiny RAM, fast skipping.
-- **LittleFS‑only for meta** → wear‑leveling & atomic rename without data‑path jitter.
+- **Raw meta region** → tiny code, fewer dependencies, CRC‑guarded records; no filesystem in the hot path.
 - **SRAM‑resident flash ops** → avoid XIP stalls during program/erase.
 - **SoA batching** → efficient scans in tiny buffers.
 
@@ -194,7 +193,7 @@ Boot → mount LittleFS → read A/B snapshots (pick newest valid)
 
 | Area          | Chosen                    | Why                   | Explored          | Trade‑off              |
 | ------------- | ------------------------- | --------------------- | ----------------- | ---------------------- |
-| Storage split | Raw log + LittleFS meta   | Predictable data path | FS for everything | FS GC jitter on ingest |
+| Storage split | Raw log + raw meta region | Predictable data path | FS for everything | No filesystem services |
 | Block/page    | 256 B page w/ header‑last | Match program unit    | 512–1 KiB blocks  | Larger loss per tear   |
 | Segment size  | 4 KiB                     | Match erase unit      | 8–16 KiB          | Coarser GC             |
 | Indexing      | Footer + block headers    | Tiny RAM              | Global tree       | Complexity, RAM        |

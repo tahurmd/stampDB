@@ -1,9 +1,9 @@
-basic 14 0.0878765
-codec 14 0.0301994
-recovery 14 0.104328
-powercut_matrix 14 0.308893
-crc_isolation 14 0.111894
-exporter 13 0.155451
-recovery_time 13 0.299768
-gc_latency 14 0.0482827
+basic 22 0.00907668
+codec 22 0.000168614
+recovery 22 0.0233911
+powercut_matrix 22 0.104629
+crc_isolation 22 0.0243629
+exporter 21 0.0289581
+recovery_time 21 0.0894144
+gc_latency 22 0.00158798
 ---

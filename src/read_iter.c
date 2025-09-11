@@ -48,14 +48,14 @@ static bool load_next_block(stampdb_it_t *it){
     while (it->page_in_seg < STAMPDB_DATA_PAGES_PER_SEG){
       if (++visited_pages > (max_pages + 1)) { return false; }
       uint32_t addr = sm->addr_first + it->page_in_seg*STAMPDB_PAGE_BYTES;
-      block_header_t h; uint8_t payload[STAMPDB_PAYLOAD_BYTES];
-      if (platform_flash_read(addr, payload, STAMPDB_PAYLOAD_BYTES)!=0) { it->seg_idx++; it->page_in_seg=0; break; }
-      uint8_t hdr[STAMPDB_HEADER_BYTES];
-      platform_flash_read(addr+STAMPDB_PAYLOAD_BYTES, hdr, STAMPDB_HEADER_BYTES);
+      block_header_t h; uint8_t page[STAMPDB_PAGE_BYTES];
+      if (platform_flash_read(addr, page, STAMPDB_PAGE_BYTES)!=0) { it->seg_idx++; it->page_in_seg=0; break; }
+      const uint8_t *payload = page;
+      const uint8_t *hdr = page + STAMPDB_PAYLOAD_BYTES;
       if (!codec_unpack_header(&h, hdr)) { it->seg_idx++; it->page_in_seg=0; break; }
-      if (crc32c(payload, STAMPDB_PAYLOAD_BYTES) != h.payload_crc){ s->crc_errors++; it->seg_idx++; it->page_in_seg=0; break; }
       it->page_in_seg++;
-      if (h.series != it->series) continue;
+      if (h.series != it->series) continue; // skip CRC for non-target series
+      if (crc32c(payload, STAMPDB_PAYLOAD_BYTES) != h.payload_crc){ s->crc_errors++; it->seg_idx++; it->page_in_seg=0; break; }
       it->count_in_block = h.count;
       it->dt_bits = h.dt_bits;
       it->t0_block = h.t0_ms;

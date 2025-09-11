@@ -38,7 +38,7 @@ extern "C" {
 #define STAMPDB_SERIES_BITMAP_BYTES 32u // 256-bit
 #define STAMPDB_MAX_SERIES 256u
 #ifndef STAMPDB_META_RESERVED
-#define STAMPDB_META_RESERVED (32768u) // reserved at top of flash for snapshots + head hint (LittleFS)
+#define STAMPDB_META_RESERVED (32768u) // reserved at top of flash for snapshots + head hint (raw meta region)
 #endif
 #define STAMPDB_LAYOUT_VERSION 1
 
@@ -64,7 +64,7 @@ int platform_flash_erase_4k(uint32_t addr);
 int platform_flash_program_256(uint32_t addr, const void *src);
 uint32_t platform_flash_size_bytes(void);
 
-// Meta store (LittleFS / host-files)
+// Meta store (raw reserved flash region)
 typedef struct {
   uint32_t version;
   uint32_t epoch_id;
@@ -137,6 +137,7 @@ typedef struct {
   // zone map cache of all segments (constant RAM)
   seg_summary_t *segs;
   uint32_t seg_count;
+  uint32_t used_seg_count; // segments with block_count>0
 
   // ring head/tail
   ring_head_t head;

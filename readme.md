@@ -65,7 +65,7 @@ text
 │ │
 ▼ │
 ┌──────────────────────────┐ │
-│ Write SSTable to LittleFS│ │
+│ Commit header‑last page   │ │
 └──────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 
@@ -105,23 +105,21 @@ The foundation of StampDB's reliability is its underlying filesystem.
 
 | Decision & Rationale                                                  | Alternatives Explored                                                                                                                                                               | Trade-offs                                                                                                                                                                                                                                                                                                               |
 | :-------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Use LittleFS:** We build StampDB on top of the LittleFS filesystem. | - **FAT Filesystem:** Not power-fail safe and lacks wear leveling. Unsuitable for reliable embedded systems.<br>- **Custom Flash Abstraction Layer:** Hugely complex and high-risk. | - **Performance Overhead:** LittleFS has a small performance and memory overhead compared to writing to raw flash.<br>- **Benefit:** We instantly inherit professional-grade **wear leveling**, **bad block management**, and **power-loss safety**, saving months of development and drastically reducing project risk. |
+| **Raw Meta Region:** Store snapshots/head‑hint as CRC‑guarded records in reserved flash sectors. | - **Full Filesystem:** Adds code size/latency and dependency; unnecessary for fixed records. | - **No FS services:** You manage records directly; simple and predictable.
 
-#### Flash Layout (within LittleFS)
+#### Flash Layout (with Raw Meta Region)
 
-/ (LittleFS Root)
-├── db/
-│ ├── data/
-│ │ ├── 1662547200.sst
-│ │ ├── 1662547560.sst
-│ │ └── ...
-│ └── index/
-│ └── snapshot.idx
+Overall Flash
+```
+[ Raw Data Ring ]  ...  [ Reserved Meta Region (≥12 KiB) ]
+```
 
-text
-
-- **`data/`**: Contains the compressed and checksummed time-series data blocks (SSTables).
-- **`index/`**: Contains the periodic snapshot of the in-memory sparse index, enabling a fast boot time.
+Meta Region (first 256 B page used in each sector)
+```
+Sector 0: Snapshot A   (CRC-guarded)
+Sector 1: Snapshot B   (CRC-guarded)
+Sector 2: Head Hint    (CRC-guarded)
+```
 
 ### 5.2. Data Compression
 
@@ -138,7 +136,7 @@ The database's memory usage is fixed and will not grow unexpectedly. Our total b
 | **In-RAM Write Buffer (Memtable)** | 4 KB      | Primary buffer for incoming data points before they are flushed to flash.                                                                                                |
 | **Query & Compaction Buffer**      | 8 KB      | A dedicated buffer used for reading and decompressing data from flash during queries and compaction. Its fixed size prevents large queries from consuming excessive RAM. |
 | **In-Memory Sparse Index**         | 48 KB     | Stores `(start_timestamp, file_name)` pairs. This allows for ~2,000 index entries, which can track over 2 million data points.                                           |
-| **LittleFS Runtime & Cache**       | 16 KB     | Allocates memory for the LittleFS filesystem itself, including its internal state, file handles, and a small cache.                                                      |
+| **Meta Region Overhead**           | ~0 KB     | Raw flash records; no filesystem runtime or cache.                                                                                                                       |
 | **Runtime & Stack Overhead**       | 2 KB      | A small allocation for the database's own function call stack and other runtime variables on Core 1.                                                                     |
 | **Total Estimated Maximum RAM**    | **78 KB** | This provides significant breathing space, leaving over 440KB of RAM for the main application and networking stack.                                                      |
 
@@ -157,7 +155,7 @@ StampDB employs a multi-layered approach to ensure data is never lost or corrupt
 | Feature             | How it Works                                                                                                                                                                                                       | Purpose                                                                            |
 | :------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------- |
 | **CRC32 Checksums** | A 32-bit checksum is calculated for every data block written to flash. This checksum is verified every time the block is read. We will use the Pico SDK's hardware-accelerated CRC32 capabilities for performance. | Guarantees protection against "bit rot" or other forms of on-disk data corruption. |
-| **Atomic Writes**   | By using LittleFS, all file writes are atomic. An index snapshot or a data block is either written completely and correctly, or not at all.                                                                        | Prevents corrupted files in the event of power loss during a write operation.      |
+| **Atomic Page Publish**   | Blocks are committed header‑last within a single 256 B page. On power loss before the header, the page is ignored during recovery. Metadata records are CRC‑validated single‑page writes in dedicated sectors. | Prevents corrupted reads; recovery ignores torn writes.      |
 | **Compaction**      | A low-priority background task on Core 1 merges smaller SSTable files into larger ones. It writes the new merged file first, then updates the index, and only then deletes the old files.                          | Maintains fast read performance over time and is itself a power-safe operation.    |
 
 ## 6. Key Jargon Explained
@@ -166,7 +164,7 @@ StampDB employs a multi-layered approach to ensure data is never lost or corrupt
 - **Memtable:** A temporary, in-memory table that buffers new writes before they are flushed to permanent storage. It's the key to absorbing writes at high speed.
 - **SSTable (Sorted String Table):** An immutable (never modified) file on flash that contains a block of data, sorted by its key (in our case, by timestamp).
 - **LSM-Tree (Log-Structured Merge-Tree):** The architectural concept of using a Memtable, SSTables, and a Compaction process to create a write-optimized database.
-- **Wear Leveling:** A technique used by flash-aware filesystems like LittleFS to distribute writes evenly across all physical blocks of the flash memory, preventing any single block from wearing out prematurely.
+- **Wear Considerations:** Metadata sector writes are infrequent (on snapshot or segment roll). Data ring writes are evenly distributed by circular rotation.
 
 ---
 
@@ -190,7 +188,6 @@ Environment overrides (host sim paths):
 
 ```
 export STAMPDB_FLASH_PATH=/abs/path/flash.bin
-export STAMPDB_META_DIR=/abs/path
 ```
 
 See `KNOWLEDGEBASE.md` for the full operational guide.

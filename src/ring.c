@@ -106,6 +106,7 @@ int ring_scan_and_recover(stampdb_state_t *s, const stampdb_snapshot_t *snap_opt
   }
 
   bool any=false;
+  s->used_seg_count = 0;
   for (uint32_t i=0;i<s->seg_count;i++){
     uint32_t base = i*STAMPDB_SEG_BYTES;
     seg_footer_t f;
@@ -117,7 +118,7 @@ int ring_scan_and_recover(stampdb_state_t *s, const stampdb_snapshot_t *snap_opt
       sm->t_max = f.t_max;
       sm->block_count = f.block_count;
       memcpy(sm->series_bitmap, f.series_bitmap, STAMPDB_SERIES_BITMAP_BYTES);
-      sm->valid=true; any=true;
+      sm->valid=true; any=true; if (sm->block_count>0) s->used_seg_count++;
     }
   }
 
@@ -166,6 +167,7 @@ int ring_scan_and_recover(stampdb_state_t *s, const stampdb_snapshot_t *snap_opt
         sm->block_count++;
         sm->series_bitmap[h.series>>3] |= (1u<<(h.series&7));
       }
+      s->used_seg_count = (sm->block_count>0) ? 1u : 0u;
     }
   }
 
@@ -200,28 +202,20 @@ int ring_scan_and_recover(stampdb_state_t *s, const stampdb_snapshot_t *snap_opt
 int ring_finalize_segment_and_rotate(stampdb_state_t *s){
   // gather stats from the segment we are finalizing
   uint32_t base = align_down(s->head.addr, STAMPDB_SEG_BYTES);
-  // compute footer by scanning this segment's data pages
+  // Build footer directly from in-RAM summary for this segment
   seg_footer_t f; memset(&f, 0, sizeof(f));
   f.magic = STAMPDB_FOOTER_MAGIC;
   f.seg_seqno = s->head.seg_seqno;
-  f.t_min = 0xFFFFFFFFu; f.t_max=0;
-  for (uint32_t p=0;p<STAMPDB_DATA_PAGES_PER_SEG;p++){
-    block_header_t h; uint8_t payload[STAMPDB_PAYLOAD_BYTES];
-    if (read_block(base + p*STAMPDB_PAGE_BYTES, &h, payload)!=0) break;
-    if (h.t0_ms < f.t_min) f.t_min = h.t0_ms;
-    uint32_t last_t = h.t0_ms;
-    if (h.dt_bits==8){
-      const uint8_t *pr = payload;
-      for (uint16_t i=0;i<h.count;i++) last_t += *pr++;
-    } else {
-      const uint8_t *pr = payload;
-      for (uint16_t i=0;i<h.count;i++){ last_t += (uint16_t)(pr[0]|(pr[1]<<8)); pr+=2; }
-    }
-    if (last_t > f.t_max) f.t_max = last_t;
-    f.block_count++;
-    // series bitmap
-    uint32_t idx = h.series >> 3; uint8_t bit = 1u << (h.series & 7);
-    f.series_bitmap[idx] |= bit;
+  uint32_t cur_idx = base / STAMPDB_SEG_BYTES;
+  if (cur_idx < s->seg_count){
+    seg_summary_t *sm = &s->segs[cur_idx];
+    f.t_min = sm->t_min;
+    f.t_max = sm->t_max;
+    f.block_count = sm->block_count;
+    memcpy(f.series_bitmap, sm->series_bitmap, STAMPDB_SERIES_BITMAP_BYTES);
+  } else {
+    f.t_min = 0xFFFFFFFFu; f.t_max = 0; f.block_count = 0;
+    memset(f.series_bitmap, 0, STAMPDB_SERIES_BITMAP_BYTES);
   }
   f.crc = 0;
   f.crc = crc32c(&f, sizeof(f));
@@ -234,6 +228,9 @@ int ring_finalize_segment_and_rotate(stampdb_state_t *s){
   s->head.seg_seqno++;
   s->head.addr = next_base;
   s->head.page_index = 0;
+  // persist head hint only on segment rotation to reduce wear
+  meta_save_head_hint(s->head.addr, s->head.seg_seqno);
+  s->last_hint_ms = (uint32_t)platform_millis();
   // update zone map entry
   uint32_t idx = next_base / STAMPDB_SEG_BYTES;
   s->segs[idx].addr_first = next_base;
@@ -291,18 +288,12 @@ int ring_write_block(stampdb_state_t *s, const block_header_t *h, const uint8_t 
     for (uint16_t i=0;i<h->count;i++){ last_t += (uint16_t)(pr[0]|(pr[1]<<8)); pr+=2; }
   }
   if (last_t > sm->t_max) sm->t_max = last_t;
+  if (sm->block_count == 0) s->used_seg_count++;
   sm->block_count++;
   sm->series_bitmap[h->series >> 3] |= (1u << (h->series & 7));
 
   if (s->head.page_index >= STAMPDB_DATA_PAGES_PER_SEG){
     ring_finalize_segment_and_rotate(s);
-  }
-
-  // hint update
-  uint32_t now = (uint32_t)platform_millis();
-  if ((s->blocks_written & 63u) == 0u || (now - s->last_hint_ms) >= 2000u){
-    meta_save_head_hint(s->head.addr, s->head.seg_seqno);
-    s->last_hint_ms = now;
   }
 
   return 0;
@@ -315,8 +306,7 @@ int ring_write_block(stampdb_state_t *s, const block_header_t *h, const uint8_t 
  */
 int ring_gc_reclaim_if_needed(stampdb_state_t *s, bool non_blocking){
   // Watermarks: warn at 10%, busy at 5%
-  uint32_t used = 0;
-  for (uint32_t i=0;i<s->seg_count;i++) if (s->segs[i].valid && s->segs[i].block_count>0) used++;
+  uint32_t used = s->used_seg_count;
   uint32_t free = s->seg_count - used;
   if (free*100u < 10u*s->seg_count) s->gc_warn_events++;
   if (free*100u < 5u*s->seg_count) s->gc_busy_events++;
@@ -340,6 +330,7 @@ int ring_gc_reclaim_if_needed(stampdb_state_t *s, bool non_blocking){
   }
   uint32_t base = oldest_idx*STAMPDB_SEG_BYTES;
   platform_flash_erase_4k(base);
+  if (s->segs[oldest_idx].block_count > 0 && s->used_seg_count > 0) s->used_seg_count--;
   s->segs[oldest_idx].t_min=0xFFFFFFFFu; s->segs[oldest_idx].t_max=0; s->segs[oldest_idx].block_count=0; memset(s->segs[oldest_idx].series_bitmap,0,STAMPDB_SERIES_BITMAP_BYTES);
   erased_in_window++;
   (void)last_erase_ms;

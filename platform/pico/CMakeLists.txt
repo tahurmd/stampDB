@@ -1,11 +1,10 @@
 #
 # @file platform/pico/CMakeLists.txt
-# @brief Pico port: platform glue library, firmware UF2 and LittleFS integration.
+# @brief Pico port: platform glue library and firmware UF2.
 #
 # Targets:
 #  - stampdb_pico_port: platform glue for flash ops (__not_in_flash_func)
 #  - stampdb_pico_fw: example firmware producing UF2
-#  - littlefs: fetched as a static lib and linked for metadata
 #
 cmake_minimum_required(VERSION 3.20)
 
@@ -33,14 +32,4 @@ add_executable(stampdb_pico_fw main.c)
 target_link_libraries(stampdb_pico_fw PRIVATE stampdb stampdb_pico_port pico_stdlib)
 pico_add_extra_outputs(stampdb_pico_fw)
 
-# LittleFS fetch & integration for Pico metadata
-include(FetchContent)
-FetchContent_Declare(
-  littlefs
-  GIT_REPOSITORY https://github.com/littlefs-project/littlefs.git
-  GIT_TAG v2.9.2
-)
-FetchContent_MakeAvailable(littlefs)
-add_library(littlefs STATIC ${littlefs_SOURCE_DIR}/lfs.c ${littlefs_SOURCE_DIR}/lfs_util.c)
-target_include_directories(littlefs PUBLIC ${littlefs_SOURCE_DIR})
-target_link_libraries(stampdb PRIVATE littlefs)
+# No external FS dependency: metadata is stored in a raw reserved flash region

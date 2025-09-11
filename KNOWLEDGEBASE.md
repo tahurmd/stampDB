@@ -11,7 +11,7 @@ Key properties (as implemented now):
 - Compression: per‑block Fixed16 (bias/scale f32), u8/u16 timestamp deltas; close early to fit.
 - Recovery: A/B snapshots + head hint + tail probe; at most last partial block lost.
 - GC watermarks: warn <10% free; busy <5% free; ≤2 segments/sec quota (blocking writer).
-- Pico: dual‑core split (Core1 DB, Core0 serial); flash ops in SRAM; metadata on LittleFS.
+- Pico: dual‑core split (Core1 DB, Core0 serial); flash ops in SRAM; metadata in a raw reserved flash region.
 
 ---
 
@@ -30,17 +30,17 @@ Key properties (as implemented now):
 
 ```
 PC (host)
-  tools/tests/python -> libstampdb (sim) -> flash.bin + meta_snap_a.bin/meta_snap_b.bin + meta_head_hint.bin
+  tools/tests/python -> libstampdb (sim) -> flash.bin (contains data + meta)
 
 Pico (RP2350)
   Core0 (USB-serial) <==== SPSC FIFO ====> Core1 (StampDB)
          |                                      |
       serial CLI                      flash read/erase/program (__not_in_flash_func)
-                                         LittleFS metadata (snap_a, snap_b, head_hint)
+                                         Raw meta region (snap_a, snap_b, head_hint)
 
 Storage split:
   - Raw data ring (NOR flash region, circular segments)
-  - Metadata (host files or Pico LittleFS in a reserved 32 KiB region)
+  - Metadata (raw reserved flash region; no filesystem)
 
 Write/read/recovery/GC run inside the core library (src/stampdb.c, src/ring.c, src/read_iter.c).
 ```
@@ -59,7 +59,7 @@ Diagrams:
 
 Overall flash
 ```
-[ Data Ring: 0 .. (flash_size - META_RESERVED - 1) ] [ LittleFS: META_RESERVED (32 KiB) at top ]
+[ Data Ring: 0 .. (flash_size - META_RESERVED - 1) ] [ Raw Meta Region: META_RESERVED at top ]
 ```
 
 Segment (4 KiB)
@@ -123,9 +123,8 @@ Segment footer (256 B) — last page:
 | series_bitmap | 32   | bytes | 256‑bit series presence bitmap            | Yes  |
 | crc           | 4    | u32   | CRC32C over struct with crc=0             | n/a  |
 
-Snapshot (metadata; host files or Pico LittleFS):
-- Host: `meta_snap_a.bin`, `meta_snap_b.bin` in repo root.
-- Pico: `snap_a`, `snap_b` in LittleFS (reserved 32 KiB at top of flash).
+Snapshot (metadata; raw flash):
+- Stored in two 4 KiB sectors at top of flash (A/B). First 256 B page contains the record.
 
 | Field         | Size | Units | Meaning                             | CRC? |
 |---------------|------|-------|-------------------------------------|------|
@@ -136,7 +135,7 @@ Snapshot (metadata; host files or Pico LittleFS):
 | head_addr     | 4    | u32   | Absolute head address               | Yes  |
 | crc           | 4    | u32   | CRC32C over struct with crc=0       | n/a  |
 
-Head hint (metadata; host `meta_head_hint.bin`, Pico `head_hint`):
+Head hint (metadata; raw flash sector):
 | Field | Size | Units | Meaning                | CRC? |
 |-------|------|-------|------------------------|------|
 | addr  | 4    | u32   | Head address hint      | Yes  |
@@ -248,12 +247,12 @@ stampdb_close(db);
 | `src/stampdb.c` | API impl; builder; epoch wrap | `stampdb_*` | external callers |
 | `src/ring.c` | Write/recover/GC/footer | `ring_*` | stampdb.c |
 | `src/read_iter.c` | Iterator + latest | `stampdb_query_*`, latest | tools/app |
-| `src/meta_lfs.c` | Metadata (host files & Pico LittleFS) | `meta_*` | stampdb/ring |
+| `src/meta_lfs.c` | Metadata (raw reserved flash region) | `meta_*` | stampdb/ring |
 | `sim/flash.c` | Host NOR sim (1→0, 4 KiB erase) | `sim_flash_*` | platform_sim |
 | `sim/platform_sim.c` | Host glue (millis + sim) | `platform_*` | core |
 | `platform/pico/platform_pico.c` | Pico flash ops (SRAM) | `platform_*` | core |
 | `platform/pico/main.c` | Pico app (Core0 serial, Core1 DB) | FIFO cmd handlers | firmware |
-| `platform/pico/CMakeLists.txt` | Pico build; fetch SDK/LittleFS | targets | CMake |
+| `platform/pico/CMakeLists.txt` | Pico build; platform glue only (no filesystem) | targets | CMake |
 | `tools/stampctl.c` | CLI exporter + retention | `export`, `retention` | user/CI |
 | `tests/*.c` | CTest suite | basic/codec/recovery/GC | CI/local |
 
@@ -278,7 +277,6 @@ cmake --build build/mk -j
 Dependencies
 - CMake ≥ 3.20; C11 compiler.
 - Pico SDK (fetched via CMake or set `PICO_SDK_PATH`).
-- LittleFS fetched and linked for Pico metadata.
 
 Optional
 - Python 3 for ctypes and serial client (`pyserial`).
@@ -297,7 +295,7 @@ Versioning & Changelog
 
 Clean sim
 ```
-rm -f flash.bin meta_snap_a.bin meta_snap_b.bin meta_head_hint.bin
+rm -f flash.bin
 ```
 
 Build & test
@@ -324,12 +322,11 @@ Export CSV
 ```
 
 Where sim files live
-- Default: repo root (`flash.bin`, `meta_snap_a.bin`, `meta_snap_b.bin`, `meta_head_hint.bin`).
+- Default: repo root (`flash.bin`, contains both data and meta regions).
 
 Env‑var overrides (host sim):
 ```
 export STAMPDB_FLASH_PATH=/abs/path/flash.bin
-export STAMPDB_META_DIR=/abs/path
 ```
 
 Env overrides
@@ -365,8 +362,8 @@ Serial (USB CDC)
 ## Operations runbook
 
 Snapshots
-- Host: A/B files; atomic rename; `stampdb_snapshot_save()` or `s` over serial (Pico).
-- Pico: LittleFS `snap_a`/`snap_b`; rename‑atomic; CRC‑validated.
+- Host: call `stampdb_snapshot_save()` to write a CRC‑guarded snapshot record (A/B sectors).
+- Pico: send `s` over serial to persist a snapshot.
 
 Export ranges
 - Host: `stampctl export --series S --t0 T0 --t1 T1 --csv`
@@ -376,7 +373,7 @@ Retention estimate
 - `stampctl retention --days D` prints rough capacity and rows/day.
 
 Reset/wipe
-- Host: delete `flash.bin` and meta files.
+- Host: delete `flash.bin`.
 - Pico: **Unknown** dedicated wipe command via serial. Could add one; otherwise reflash.
 
 Troubleshooting
@@ -424,7 +421,7 @@ Snapshot‑bounded recovery
 
 Implemented
 - Timestamp wrap/epoch: Yes (epoch++ on large backward jump); stored in snapshots.
-- Metadata: Host files (atomic rename); Pico LittleFS with tmp+rename.
+- Metadata: Raw reserved flash region for snapshots (A/B sectors) and head hint.
 - Dual‑core (Pico): Yes (Core1 DB; Core0 serial; FIFO SPSC).
 - Watermarks: warn <10%, busy <5% with counters in stats; ≤2 seg/s quota; writer blocks.
 - Deep recovery scan: Yes (footers across ring, tail page probe).
@@ -435,7 +432,7 @@ Drift vs SPEC/ARCH
 - SPEC §6 BlockHdr: **SHOULD** — Header magic/layout differ (`'BLK1'`; has bias/scale/payload_crc; no t_min/t_max/version fields).
 - SPEC §7 SegmentFooter: **NICE** — Footer magic/layout differ (`'SFG1'`; no version/reserved).
 - SPEC §8 Snapshot/ring-head: **NICE** — Fields differ (version/epoch/head_addr/seqs) and file paths are simplified.
-- ARCH metadata paths: **NICE** — Uses `snap_a`, `snap_b`, `head_hint` files instead of directory tree.
+- ARCH metadata: **NICE** — Uses raw meta sectors for `snap_a`, `snap_b`, and a head hint page.
 
 Severity
 - BLOCKER: None.
@@ -483,7 +480,7 @@ Severity
 - Can I delete data? No explicit delete; circular retention reclaims the oldest segments.
 - Single‑core or dual‑core? Host is single‑process; Pico is dual‑core (Core1 DB).
 - What is UF2? A firmware file you drag‑and‑drop when Pico is in BOOTSEL mode.
-- Where is data on PC? In repo root: `flash.bin` and meta files.
+- Where is data on PC? In repo root: `flash.bin` (data + meta inside).
 - Can I change sim flash size? Yes: `STAMPDB_SIM_FLASH_BYTES` env var.
 
 ---
@@ -512,7 +509,7 @@ Constants (as coded)
 - `STAMPDB_MAX_SERIES = 256`
 - `STAMPDB_BLOCK_MAGIC = 0x424C4B31 ('BLK1')`
 - `STAMPDB_FOOTER_MAGIC = 0x53464731 ('SFG1')`
-- `STAMPDB_META_RESERVED = 32768` (LittleFS region at top)
+- `STAMPDB_META_RESERVED = 32768` (raw meta region at top)
 
 CLI reference
 - Export: `stampctl export --series S --t0 T0 --t1 T1 [--csv|--ndjson]`

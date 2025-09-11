@@ -15,7 +15,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 option(STAMPDB_PLATFORM_SIM "Build for host simulator platform" ON)
-set(STAMPDB_META_RESERVED_BYTES "32768" CACHE STRING "Bytes reserved for LittleFS metadata region at top of flash")
+set(STAMPDB_META_RESERVED_BYTES "32768" CACHE STRING "Bytes reserved for metadata region at top of flash")
 
 add_library(stampdb
   src/stampdb.c
@@ -61,5 +61,5 @@ if(STAMPDB_PLATFORM_SIM)
   target_sources(stampdb_shared PRIVATE sim/flash.c sim/platform_sim.c)
   target_compile_definitions(stampdb_shared PRIVATE STAMPDB_PLATFORM_SIM=1)
 else()
-  target_link_libraries(stampdb_shared PRIVATE stampdb_pico_port littlefs)
+  target_link_libraries(stampdb_shared PRIVATE stampdb_pico_port)
 endif()

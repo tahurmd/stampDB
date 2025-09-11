@@ -115,7 +115,7 @@ stampdb_cfg_t cfg = {
 
 - **No global trees or large indexes.** Only per‑segment footers + per‑block headers are consulted.
 - **No heap growth after `open()`**. All buffers pre‑allocated; sizes are deterministic.
-- **No FS caching in DB core.** LittleFS manages its own small buffers; DB keeps meta churn low via cadence.
+- **No filesystem buffers.** Metadata uses a raw reserved flash region with fixed‑size records; the data path avoids any FS.
 
 ---
 

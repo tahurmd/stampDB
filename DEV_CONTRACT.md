@@ -10,7 +10,7 @@ Compression: per-block Fixed16 quantization with bias, scale (f32), timestamp de
 
 Timestamps: u32 ts_ms + epoch_id (in snapshots) to handle wrap.
 
-Metadata: A/B snapshots in LittleFS using rename-atomic; also persist a small ring head pointer updated every 64 blocks or 2 s (whichever first).
+Metadata: A/B snapshots in a raw reserved flash region (two sectors) with CRC; also persist a small ring head pointer in a dedicated sector (updated on segment roll).
 
 Recovery: load newest valid A/B snapshot; probe last segment tail; truncate partial block; if snapshot missing, rebuild summaries from commit footers. Lose at most the last partial block.
 
@@ -37,7 +37,7 @@ Language: C11 only.
 Build: CMake presets for host and pico2_w; .vscode tasks/launch.
 
 Layout:
-include/ API · src/ core (codec, write, read, recovery, crc32c, util) · src/meta_lfs.c (LittleFS meta) · platform/pico/ port · sim/ host sim · tools/ CLI · tests/ CTest.
+include/ API · src/ core (codec, write, read, recovery, crc32c, util) · src/meta_lfs.c (raw meta) · platform/pico/ port · sim/ host sim · tools/ CLI · tests/ CTest.
 
 Docs: README.md (short), ARCHITECTURE.md (flows), SPEC.md (formats & constants).
 

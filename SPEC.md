@@ -42,7 +42,7 @@ CRC32C_POLY               = 0x1EDC6F41  // Castagnoli
 
 ---
 
-## 4. On‑flash layout (data ring + LittleFS meta)
+## 4. On‑flash layout (data ring + raw meta region)
 
 ### 4.1 Data ring (raw log)
 
@@ -54,19 +54,19 @@ A fixed‑size circular region partitioned into **segments** of 4 KiB. Each se
 
 At the **end of each segment** there is a **SegmentFooter** placed in the last 256 B page.
 
-### 4.2 Metadata (LittleFS)
+### 4.2 Metadata (raw meta region)
 
-LittleFS volume holds:
+A reserved flash region at the top of the device holds metadata as fixed 256‑byte records inside dedicated 4 KiB sectors:
 
 ```
-/db/index_A.snap   // SnapshotV1
-/db/index_B.snap   // SnapshotV1 (A/B flip)
-/db/ring_head.bin  // RingHead (fast‑forward pointer)
-/logs/diag.log     // Optional diagnostics (size‑capped)
-/health/wear.bin   // Erase counts, retired segments (optional)
+Meta region (size = STAMPDB_META_RESERVED)
+  Sector 0: Snapshot A (first 256 B page used)
+  Sector 1: Snapshot B (first 256 B page used)
+  Sector 2: Head hint   (first 256 B page used)
+  Remaining: reserved for future use
 ```
 
-A/B updates use **rename‑atomic**. `ring_head.bin` is updated on the cadence specified in §2.
+Updates are sector‑erased and then a single 256‑byte page is programmed with a CRC. The newest valid snapshot is chosen by `seg_seq_head`.
 
 ---
 
@@ -159,26 +159,26 @@ struct SnapshotV1 {
   uint32 ring_head_seq;// next segment to write
   uint32 ring_tail_seq;// oldest retained segment
   uint32 crc32c;       // over all fields above
-} // stored as /db/index_A.snap or /db/index_B.snap
+} // stored in meta sector 0 (A) or sector 1 (B)
 
 struct RingHead {
   uint32 seg_seqno;    // recent head placement hint
   uint32 unix_secs;    // optional timestamp
   uint32 crc32c;
-} // stored as /db/ring_head.bin
+} // stored in meta sector 2 (head hint)
 ```
 
-**A/B protocol:** write new snapshot to the **older** of A/B, **fsync**, then **rename‑atomic** to its canonical name.
+**A/B protocol:** write new snapshot to the older of A/B sectors (erase sector, then program the 256‑byte record). CRC guards torn writes.
 
 ---
 
 ## 9. Recovery (normative algorithm)
 
-1. Mount LittleFS. Read **A/B snapshots**; verify CRC; choose newest valid by `snap_seqno`.
-2. Read `/db/ring_head.bin` if present to fast‑forward head positioning.
+1. Read both snapshot sectors (A/B). Verify CRC; choose newest valid by `snap_seqno`.
+2. Read head‑hint sector if present to fast‑forward head positioning.
 3. Probe the **tail of the last segment** referenced by the snapshot: scan 256‑B pages forward; accept only pages with valid `BlockHdr` and CRC‑clean payload; stop at first invalid header; **truncate (virtually)** after the last valid block.
 4. If snapshot missing or invalid: rebuild in‑RAM summaries by scanning only **SegmentFooter** pages across the ring (fast), then perform step 3 on the last segment.
-   **Guarantee:** At most the **last partial block** is lost.
+  **Guarantee:** At most the **last partial block** is lost.
 
 ---
 
@@ -264,8 +264,8 @@ void       stampdb_info(stampdb_t *db, stampdb_stats_t* out);
 
 ---
 
-## 14. File names & versioning
+## 14. Metadata location & versioning
 
-- Snapshots: `/db/index_A.snap`, `/db/index_B.snap` (version = 1).
-- Ring head: `/db/ring_head.bin`.
+- Snapshots: raw meta region sectors 0 (A) and 1 (B); record version = 1.
+- Ring head hint: raw meta sector 2.
 - Increment `version` on any incompatible format change; StampDB MAY support **read‑only** compatibility for older versions if RAM budget allows.
